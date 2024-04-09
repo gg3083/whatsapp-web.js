@@ -166,13 +166,14 @@ class RemoteAuth extends BaseAuthStrategy {
         //         .on('finish', () => resolve());
         // });
         var zip = new AdmZip(compressedSessionPath);
-        zip.extractAllToAsync(this.userDataDir, false, false, (err) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve();
-            }
-        });
+        zip.extractAllToAsync(this.userDataDir, false, false); 
+        // zip.extractAllToAsync(this.userDataDir, false, false, (err) => {
+        //     if (err) {
+        //         reject(err);
+        //     } else {
+        //         resolve();
+        //     }
+        // });
         await fs.promises.unlink(compressedSessionPath);
     }
 
