@@ -556,7 +556,7 @@ class Client extends EventEmitter {
         });
 
         await page.exposeFunction('onAppStateChangedEvent', async (state) => {
-
+            console.log('onAppStateChangedEvent:', state)
             /**
              * Emitted when the connection state changes
              * @event Client#change_state
@@ -744,6 +744,7 @@ class Client extends EventEmitter {
         // Disconnect when navigating away when in PAIRING state (detect logout)
         this.pupPage.on('framenavigated', async () => {
             const appState = await this.getState();
+            console.log('appState:', appState)
             if(!appState || appState === WAState.PAIRING) {
                 await this.authStrategy.disconnect();
                 this.emit(Events.DISCONNECTED, 'NAVIGATION');
