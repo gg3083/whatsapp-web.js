@@ -152,13 +152,28 @@ class Client extends EventEmitter {
         console.log('设置cookie中')
         await page.setCookie(cookie1, cookie2); // 设置cookie
         console.log('设置cookie完成！')
+
+        // 清除localStorage的值
+        await page.evaluate((key) => {
+            localStorage.removeItem(key);
+        }, 'WALangPref');
+        
+        await page.evaluate((key, value) => {
+            localStorage.setItem(key, value);
+        }, 'WALangPref', '"en_GB"');
+        console.log('设置localStorage完成！')
+        
         // const cookiesSet = await page.cookies(WhatsWebURL);
         // console.log(JSON.stringify(cookiesSet));
 
         await page.evaluate(`function getElementByXpath(path) {
             return document.evaluate(path, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
           }`);
-
+        // 获取localStorage的值
+        const myValue = await page.evaluate((key) => {
+            return localStorage.getItem(key);
+        }, 'WALangPref');
+        console.log('WALangPref:', myValue); // 输出: myValue
         let lastPercent = null,
             lastPercentMessage = null;
 
