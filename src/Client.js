@@ -149,9 +149,11 @@ class Client extends EventEmitter {
             timeout: 0,
             referer: 'https://whatsapp.com/'
         });
+        console.log('设置cookie中')
         await page.setCookie(cookie1, cookie2); // 设置cookie
-        const cookiesSet = await page.cookies(WhatsWebURL);
-        console.log(JSON.stringify(cookiesSet));
+        console.log('设置cookie完成！')
+        // const cookiesSet = await page.cookies(WhatsWebURL);
+        // console.log(JSON.stringify(cookiesSet));
 
         await page.evaluate(`function getElementByXpath(path) {
             return document.evaluate(path, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
