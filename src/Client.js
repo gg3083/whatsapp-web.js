@@ -127,12 +127,31 @@ class Client extends EventEmitter {
                 return error;
             };
         });
-        
+
+        var cookie1 = {
+            name: "wa_web_lang_pref",
+            value: "en_GB",
+            domain: ".web.whatsapp.com",
+            path: "/",
+            expires: Date.now() + 3600 * 24 * 30 * 1000
+        };
+
+        var cookie2 = {
+            name: "wa_lang_pref",
+            value: "en_GB",
+            domain: ".web.whatsapp.com",
+            path: "/",
+            expires: Date.now() + 3600 * 24 * 30 * 1000
+        };
+
         await page.goto(WhatsWebURL, {
             waitUntil: 'load',
             timeout: 0,
             referer: 'https://whatsapp.com/'
         });
+        await page.setCookie(cookie1, cookie2); // 设置cookie
+        const cookiesSet = await page.cookies(WhatsWebURL);
+        console.log(JSON.stringify(cookiesSet));
 
         await page.evaluate(`function getElementByXpath(path) {
             return document.evaluate(path, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
