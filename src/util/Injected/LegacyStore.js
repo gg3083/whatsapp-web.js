@@ -1,12 +1,9 @@
 'use strict';
 
-//TODO: To be removed y version 2.3000.x hard release
+//TODO: To be removed by version 2.3000.x hard release
 
 // Exposes the internal Store to the WhatsApp Web client
-exports.ExposeLegacyStore = (moduleRaidStr) => {
-    eval('var moduleRaid = ' + moduleRaidStr);
-    // eslint-disable-next-line no-undef
-    window.mR = moduleRaid();
+exports.ExposeLegacyStore = () => {
     window.Store = Object.assign({}, window.mR.findModule(m => m.default && m.default.Chat)[0].default);
     window.Store.AppState = window.mR.findModule('Socket')[0].Socket;
     window.Store.Conn = window.mR.findModule('Conn')[0].Conn;
@@ -60,7 +57,7 @@ exports.ExposeLegacyStore = (moduleRaidStr) => {
     window.Store.JidToWid = window.mR.findModule('userJidToUserWid')[0];
     window.Store.getMsgInfo = (window.mR.findModule('sendQueryMsgInfo')[0] || {}).sendQueryMsgInfo || window.mR.findModule('queryMsgInfo')[0].queryMsgInfo;
     window.Store.pinUnpinMsg = window.mR.findModule('sendPinInChatMsg')[0].sendPinInChatMsg;
-    
+
     /* eslint-disable no-undef, no-cond-assign */
     window.Store.QueryExist = ((m = window.mR.findModule('queryExists')[0]) ? m.queryExists : window.mR.findModule('queryExist')[0].queryWidExists);
     window.Store.ReplyUtils = (m = window.mR.findModule('canReplyMsg')).length > 0 && m[0];
@@ -105,7 +102,7 @@ exports.ExposeLegacyStore = (moduleRaidStr) => {
             });
         };
     }
-    
+
     // eslint-disable-next-line no-undef
     if ((m = window.mR.findModule('ChatCollection')[0]) && m.ChatCollection && typeof m.ChatCollection.findImpl === 'undefined' && typeof m.ChatCollection._find !== 'undefined') m.ChatCollection.findImpl = m.ChatCollection._find;
 

@@ -3,6 +3,17 @@
 exports.LoadUtils = () => {
     window.WWebJS = {};
 
+    window.WWebJS.forwardMessage = async (chatId, msgId) => {
+        let msg = window.Store.Msg.get(msgId);
+        let chat = window.Store.Chat.get(chatId);
+
+        if (window.WWebJS.compareWwebVersions(window.Debug.VERSION, '>', '2.3000.0')) {
+            return window.Store.ForwardUtils.forwardMessagesToChats([msg], [chat], false);
+        } else {
+            return chat.forwardMessages([msg]);
+        }
+    };
+
     window.WWebJS.sendSeen = async (chatId) => {
         let chat = window.Store.Chat.get(chatId);
         if (chat !== undefined) {
@@ -23,7 +34,7 @@ exports.LoadUtils = () => {
                     forceDocument: options.sendMediaAsDocument,
                     forceGif: options.sendVideoAsGif
                 });
-            
+
             attOptions.caption = options.caption;
             content = options.sendMediaAsSticker ? undefined : attOptions.preview;
             attOptions.isViewOnce = options.isViewOnce;
@@ -36,8 +47,8 @@ exports.LoadUtils = () => {
             let quotedMessage = window.Store.Msg.get(options.quotedMessageId);
 
             // TODO remove .canReply() once all clients are updated to >= v2.2241.6
-            const canReply = window.Store.ReplyUtils ? 
-                window.Store.ReplyUtils.canReplyMsg(quotedMessage.unsafe()) : 
+            const canReply = window.Store.ReplyUtils ?
+                window.Store.ReplyUtils.canReplyMsg(quotedMessage.unsafe()) :
                 quotedMessage.canReply();
 
             if (canReply) {
@@ -90,9 +101,9 @@ exports.LoadUtils = () => {
                 pollOptions: pollOptions,
                 pollSelectableOptionsCount: allowMultipleAnswers ? 0 : 1,
                 messageSecret:
-                Array.isArray(messageSecret) && messageSecret.length === 32
-                    ? new Uint8Array(messageSecret)
-                    : window.crypto.getRandomValues(new Uint8Array(32))
+                    Array.isArray(messageSecret) && messageSecret.length === 32
+                        ? new Uint8Array(messageSecret)
+                        : window.crypto.getRandomValues(new Uint8Array(32))
             };
             delete options.poll;
         }
@@ -143,7 +154,7 @@ exports.LoadUtils = () => {
                 }
             }
         }
-        
+
         let buttonOptions = {};
         if(options.buttons){
             let caption;
@@ -184,9 +195,18 @@ exports.LoadUtils = () => {
             delete listOptions.list.footer;
         }
 
+        const botOptions = {};
+        if (options.invokedBotWid) {
+            botOptions.messageSecret = window.crypto.getRandomValues(new Uint8Array(32));
+            botOptions.botMessageSecret = await window.Store.BotSecret.genBotMsgSecretFromMsgSecret(botOptions.messageSecret);
+            botOptions.invokedBotWid = window.Store.WidFactory.createWid(options.invokedBotWid);
+            botOptions.botPersonaId = window.Store.BotProfiles.BotProfileCollection.get(options.invokedBotWid).personaId;
+            delete options.invokedBotWid;
+        }
+
         const meUser = window.Store.User.getMaybeMeUser();
         const newId = await window.Store.MsgKey.newId();
-        
+
         const newMsgId = new window.Store.MsgKey({
             from: meUser,
             to: chat.id,
@@ -221,18 +241,24 @@ exports.LoadUtils = () => {
             ...vcardOptions,
             ...buttonOptions,
             ...listOptions,
+            ...botOptions,
             ...extraOptions
         };
+
+        // Bot's won't reply if canonicalUrl is set (linking)
+        if (botOptions) {
+            delete message.canonicalUrl;
+        }
 
         await window.Store.SendMessage.addAndSendMsgToChat(chat, message);
         return window.Store.Msg.get(newMsgId._serialized);
     };
-	
+
     window.WWebJS.editMessage = async (msg, content, options = {}) => {
 
         const extraOptions = options.extraOptions || {};
         delete options.extraOptions;
-        
+
         if (options.mentionedJidList) {
             options.mentionedJidList = await Promise.all(
                 options.mentionedJidList.map(async (id) => {
@@ -420,7 +446,7 @@ exports.LoadUtils = () => {
             await window.Store.GroupMetadata.update(chatWid);
             res.groupMetadata = chat.groupMetadata.serialize();
         }
-        
+
         res.lastMessage = null;
         if (res.msgs && res.msgs.length) {
             const lastMessage = chat.lastReceivedKey ? window.Store.Msg.get(chat.lastReceivedKey._serialized) : null;
@@ -428,7 +454,7 @@ exports.LoadUtils = () => {
                 res.lastMessage = window.WWebJS.getMessageModel(lastMessage);
             }
         }
-        
+
         delete res.msgs;
         delete res.msgUnsyncedButtonReplyMsgs;
         delete res.unsyncedButtonReplies;
@@ -459,7 +485,7 @@ exports.LoadUtils = () => {
 
         // TODO: remove useOldImplementation and its checks once all clients are updated to >= v2.2327.4
         const useOldImplementation
-            = window.compareWwebVersions(window.Debug.VERSION, '<', '2.2327.4');
+            = window.WWebJS.compareWwebVersions(window.Debug.VERSION, '<', '2.2327.4');
 
         res.isMe = useOldImplementation
             ? contact.isMe
@@ -632,17 +658,17 @@ exports.LoadUtils = () => {
         chatId = window.Store.WidFactory.createWid(chatId);
 
         switch (state) {
-        case 'typing':
-            await window.Store.ChatState.sendChatStateComposing(chatId);
-            break;
-        case 'recording':
-            await window.Store.ChatState.sendChatStateRecording(chatId);
-            break;
-        case 'stop':
-            await window.Store.ChatState.sendChatStatePaused(chatId);
-            break;
-        default:
-            throw 'Invalid chatstate';
+            case 'typing':
+                await window.Store.ChatState.sendChatStateComposing(chatId);
+                break;
+            case 'recording':
+                await window.Store.ChatState.sendChatStateRecording(chatId);
+                break;
+            case 'stop':
+                await window.Store.ChatState.sendChatStatePaused(chatId);
+                break;
+            default:
+                throw 'Invalid chatstate';
         }
 
         return true;
@@ -770,7 +796,7 @@ exports.LoadUtils = () => {
             throw err;
         }
     };
-    
+
     window.WWebJS.getProfilePicThumbToBase64 = async (chatWid) => {
         const profilePicCollection = await window.Store.ProfilePicThumb.find(chatWid);
 
@@ -828,7 +854,7 @@ exports.LoadUtils = () => {
                 }];
 
         let rpcResult, resultArgs;
-        const isOldImpl = window.compareWwebVersions(window.Debug.VERSION, '<=', '2.2335.9');
+        const isOldImpl = window.WWebJS.compareWwebVersions(window.Debug.VERSION, '<=', '2.2335.9');
         const data = {
             name: undefined,
             code: undefined,
@@ -898,7 +924,7 @@ exports.LoadUtils = () => {
         }));
 
         const groupJid = window.Store.WidToJid.widToGroupJid(groupWid);
-        
+
         const _getSleepTime = (sleep) => {
             if (!Array.isArray(sleep) || (sleep.length === 2 && sleep[0] === sleep[1])) {
                 return sleep;
@@ -955,9 +981,9 @@ exports.LoadUtils = () => {
                 }
 
                 sleep &&
-                    participantArgs.length > 1 &&
-                    participantArgs.indexOf(participant) !== participantArgs.length - 1 &&
-                    (await new Promise((resolve) => setTimeout(resolve, _getSleepTime(sleep))));
+                participantArgs.length > 1 &&
+                participantArgs.indexOf(participant) !== participantArgs.length - 1 &&
+                (await new Promise((resolve) => setTimeout(resolve, _getSleepTime(sleep))));
             }
             return result;
         } catch (err) {
@@ -971,5 +997,47 @@ exports.LoadUtils = () => {
         const response = await window.Store.pinUnpinMsg(message, action, duration);
         if (response.messageSendResult === 'OK') return true;
         return false;
+    };
+
+    /**
+     * Helper function that compares between two WWeb versions. Its purpose is to help the developer to choose the correct code implementation depending on the comparison value and the WWeb version.
+     * @param {string} lOperand The left operand for the WWeb version string to compare with
+     * @param {string} operator The comparison operator
+     * @param {string} rOperand The right operand for the WWeb version string to compare with
+     * @returns {boolean} Boolean value that indicates the result of the comparison
+     */
+    window.WWebJS.compareWwebVersions = (lOperand, operator, rOperand) => {
+        if (!['>', '>=', '<', '<=', '='].includes(operator)) {
+            throw new class _ extends Error {
+                constructor(m) { super(m); this.name = 'CompareWwebVersionsError'; }
+            }('Invalid comparison operator is provided');
+
+        }
+        if (typeof lOperand !== 'string' || typeof rOperand !== 'string') {
+            throw new class _ extends Error {
+                constructor(m) { super(m); this.name = 'CompareWwebVersionsError'; }
+            }('A non-string WWeb version type is provided');
+        }
+
+        lOperand = lOperand.replace(/-beta$/, '');
+        rOperand = rOperand.replace(/-beta$/, '');
+
+        while (lOperand.length !== rOperand.length) {
+            lOperand.length > rOperand.length
+                ? rOperand = rOperand.concat('0')
+                : lOperand = lOperand.concat('0');
+        }
+
+        lOperand = Number(lOperand.replace(/\./g, ''));
+        rOperand = Number(rOperand.replace(/\./g, ''));
+
+        return (
+            operator === '>' ? lOperand > rOperand :
+                operator === '>=' ? lOperand >= rOperand :
+                    operator === '<' ? lOperand < rOperand :
+                        operator === '<=' ? lOperand <= rOperand :
+                            operator === '=' ? lOperand === rOperand :
+                                false
+        );
     };
 };

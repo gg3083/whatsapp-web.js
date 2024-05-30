@@ -8,8 +8,8 @@ const BaseAuthStrategy = require('./BaseAuthStrategy');
  * Local directory-based authentication
  * @param {object} options - options
  * @param {string} options.clientId - Client id to distinguish instances if you are using multiple, otherwise keep null if you are using only one instance
- * @param {string} options.dataPath - Change the default path for saving session files, default is: "./.wwebjs_auth/" 
-*/
+ * @param {string} options.dataPath - Change the default path for saving session files, default is: "./.wwebjs_auth/"
+ */
 class LocalAuth extends BaseAuthStrategy {
     constructor({ clientId, dataPath }={}) {
         super();
@@ -33,7 +33,7 @@ class LocalAuth extends BaseAuthStrategy {
         }
 
         fs.mkdirSync(dirPath, { recursive: true });
-        
+
         this.client.options.puppeteer = {
             ...puppeteerOpts,
             userDataDir: dirPath
@@ -44,7 +44,10 @@ class LocalAuth extends BaseAuthStrategy {
 
     async logout() {
         if (this.userDataDir) {
-            return (fs.rmSync ? fs.rmSync : fs.rmdirSync).call(this, this.userDataDir, { recursive: true, force: true });
+            await fs.promises.rm(this.userDataDir, { recursive: true, force: true })
+                .catch((e) => {
+                    throw new Error(e);
+                });
         }
     }
 
