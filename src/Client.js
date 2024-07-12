@@ -316,7 +316,7 @@ class Client extends EventEmitter {
         this.pupPage = page;
 
         await this.authStrategy.afterBrowserInitialized();
-        await this.initWebVersionCache();
+        // await this.initWebVersionCache();
 
         // ocVersion (isOfficialClient patch)
         // remove after 2.3000.x hard release
